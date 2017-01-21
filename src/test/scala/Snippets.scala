@@ -89,7 +89,8 @@ case class Department(id: Int, name: String)
     //val df = sparkSession.read.text("hdfs://...")
     val wordsDF = df.select(split(df("value")," ").alias("words"))
     val wordDF = wordsDF.select(explode(wordsDF("words")).alias("word"))
-    val count = wordDF.groupBy("word").count
+    val count = wordDF.groupBy(lower($"word")).count
+
 
     count.show
   }
