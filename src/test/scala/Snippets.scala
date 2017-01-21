@@ -271,15 +271,6 @@ case class Department(id: Int, name: String)
 
     val leftJoined: TypedDataset[(Department, Option[Person])] = departments.joinLeft(people, departments('id), people('deptId))
 
-  //more complex operation
-
-/*
-  people
-       .join(departments, people('deptId), departments('id)
-       .groupBy(departments('name))
-       .agg(count(people('name)), sum(people('salary))))
-       .show
-*/
   }
 
   "aggregate" should "work" in {
