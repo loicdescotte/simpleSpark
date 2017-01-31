@@ -6,7 +6,10 @@ case class Person(name: String, age: Int, gender: String, salary: Int, deptId: I
 
 case class Department(id: Int, name: String)
 
-  class SparkSpec extends FlatSpec with Matchers {
+class SparkSpec extends FlatSpec with Matchers {
+
+  Logger.getLogger("org").setLevel(Level.OFF)
+  Logger.getLogger("akka").setLevel(Level.OFF)
 
   val conf = new SparkConf().setAppName("simpleSpark").setMaster("local")
 
