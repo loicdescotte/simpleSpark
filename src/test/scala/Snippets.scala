@@ -80,6 +80,7 @@ class SparkSpec extends FlatSpec with Matchers {
     //    +-----+--------+
   }
 
+
   "dataframe count" should "work" in {
     import org.apache.spark.sql.functions._
 
@@ -154,6 +155,50 @@ class SparkSpec extends FlatSpec with Matchers {
     //|  YOU|       1|
     //|  ARE|       1|
     //+-----+--------+
+  }
+  
+   "datasets and dataframes" should "work with Options" in {
+
+    val people = Seq(
+      Person(Some("jane"), 28, "female", 2000, 2),
+      Person(Some("bob"), 31, "male", 2000, 1),
+      Person(Some("bob"), 35, "male", 2200, 1),
+      Person(None, 45, "male", 3000, 1),
+      Person(Some("joe"), 40, "male", 3000, 2),
+      Person(Some("linda"), 37, "female", 3000, 1)
+    ).toDS
+
+
+    people.printSchema()
+    
+    //    root
+    //    |-- name: string (nullable = true)
+    //    |-- age: integer (nullable = false)
+    //    |-- gender: string (nullable = true)
+    //    |-- salary: integer (nullable = false)
+    //    |-- deptId: integer (nullable = false)
+
+    people.toDF.show
+
+    //    +-----+---+------+------+------+
+    //    | name|age|gender|salary|deptId|
+    //    +-----+---+------+------+------+
+    //    | jane| 28|female|  2000|     2|
+    //    |  bob| 31|  male|  2000|     1|
+    //    |  bob| 35|  male|  2200|     1|
+    //    | null| 45|  male|  3000|     1| <-- null
+    //    |  joe| 40|  male|  3000|     2|
+    //    |linda| 37|female|  3000|     1|
+    //    +-----+---+------+------+------+
+
+    people.toDF.as[Person].collect().foreach(println)
+
+    //    Person(Some(jane),28,female,2000,2)
+    //    Person(Some(bob),31,male,2000,1)
+    //    Person(Some(bob),35,male,2200,1)
+    //    Person(None,45,male,3000,1) <-- None
+    //    Person(Some(joe),40,male,3000,2)
+    //    Person(Some(linda),37,female,3000,1)
   }
 
   "join" should "work" in {
