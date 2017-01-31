@@ -6,6 +6,8 @@ case class Person(name: String, age: Int, gender: String, salary: Int, deptId: I
 
 case class Department(id: Int, name: String)
 
+case class ComplexPerson(name: Option[String], age: Int, gender: String, salary: Int, departement: Department)
+
 class SparkSpec extends FlatSpec with Matchers {
 
   Logger.getLogger("org").setLevel(Level.OFF)
@@ -199,6 +201,52 @@ class SparkSpec extends FlatSpec with Matchers {
     //    Person(None,45,male,3000,1) <-- None
     //    Person(Some(joe),40,male,3000,2)
     //    Person(Some(linda),37,female,3000,1)
+  }
+  
+  "datasets and dataframes" should "work with Complex types" in {
+
+    val people = Seq(
+      ComplexPerson(Some("jane"), 28, "female", 2000, Department(2, "it")),
+      ComplexPerson(Some("bob"), 31, "male", 2000, Department(1, "rh")),
+      ComplexPerson(Some("bob"), 35, "male", 2200, Department(1, "rh")),
+      ComplexPerson(None, 45, "male", 3000, Department(1, "rh")),
+      ComplexPerson(Some("joe"), 40, "male", 3000, Department(1, "rh")),
+      ComplexPerson(Some("linda"), 37, "female", 3000, Department(1, "rh"))
+    ).toDS
+
+    people.printSchema()
+
+    // root
+    // |-- name: string (nullable = true)
+    // |-- age: integer (nullable = false)
+    // |-- gender: string (nullable = true)
+    // |-- salary: integer (nullable = false)
+    // |-- departement: struct (nullable = true)
+    // |    |-- id: integer (nullable = false)
+    // |    |-- name: string (nullable = true)
+
+    people.toDF.show
+
+    //+-----+---+------+------+-----------+
+    //    | name|age|gender|salary|departement|
+    //    +-----+---+------+------+-----------+
+    //    | jane| 28|female|  2000|     [2,it]|
+    //    |  bob| 31|  male|  2000|     [1,rh]|
+    //    |  bob| 35|  male|  2200|     [1,rh]|
+    //    | null| 45|  male|  3000|     [1,rh]|
+    //    |  joe| 40|  male|  3000|     [1,rh]|
+    //    |linda| 37|female|  3000|     [1,rh]|
+    //    +-----+---+------+------+-----------+
+
+    people.toDF.as[ComplexPerson].collect().foreach(println)
+
+  //    ComplexPerson(Some(jane),28,female,2000,Department(2,it))
+  //    ComplexPerson(Some(bob),31,male,2000,Department(1,rh))
+  //    ComplexPerson(Some(bob),35,male,2200,Department(1,rh))
+  //    ComplexPerson(None,45,male,3000,Department(1,rh))
+  //    ComplexPerson(Some(joe),40,male,3000,Department(1,rh))
+  //    ComplexPerson(Some(linda),37,female,3000,Department(1,rh))
+
   }
 
   "join" should "work" in {
