@@ -205,47 +205,45 @@ class SparkSpec extends FlatSpec with Matchers {
   
   "datasets and dataframes" should "work with Complex types" in {
 
-    val people = Seq(
-      ComplexPerson(Some("jane"), 28, "female", 2000, Department(2, "it")),
-      ComplexPerson(Some("bob"), 31, "male", 2000, Department(1, "rh")),
-      ComplexPerson(Some("bob"), 35, "male", 2200, Department(1, "rh")),
-      ComplexPerson(None, 45, "male", 3000, Department(1, "rh")),
-      ComplexPerson(Some("joe"), 40, "male", 3000, Department(1, "rh")),
-      ComplexPerson(Some("linda"), 37, "female", 3000, Department(1, "rh"))
-    ).toDS
+    val peopleSeq = Seq(
+      ComplexPerson(Some("jane"), 28, "female", 2000, Some(Department(2, "it"))),
+      ComplexPerson(Some("bob"), 31, "male", 2000, None),
+      ComplexPerson(Some("bob"), 35, "male", 2200, Some(Department(1, "rh"))),
+      ComplexPerson(None, 45, "male", 3000, Some(Department(1, "rh"))),
+      ComplexPerson(Some("joe"), 40, "male", 3000, Some(Department(1, "rh"))),
+      ComplexPerson(Some("linda"), 37, "female", 3000, Some(Department(1, "rh")))
+    )
 
-    people.printSchema()
+    val peopleDS = peopleSeq.toDS
 
-    // root
-    // |-- name: string (nullable = true)
-    // |-- age: integer (nullable = false)
-    // |-- gender: string (nullable = true)
-    // |-- salary: integer (nullable = false)
-    // |-- departement: struct (nullable = true)
-    // |    |-- id: integer (nullable = false)
-    // |    |-- name: string (nullable = true)
+    val peopleDF = peopleDS.toDF
 
-    people.toDF.show
+    peopleDF.printSchema()
 
-    //+-----+---+------+------+-----------+
+    //    root
+    //    |-- name: string (nullable = true)
+    //    |-- age: integer (nullable = false)
+    //    |-- gender: string (nullable = true)
+    //    |-- salary: integer (nullable = false)
+    //    |-- departement: struct (nullable = true)
+    //    |    |-- id: integer (nullable = false)
+    //    |    |-- name: string (nullable = true)
+
+
+    peopleDF.show
+    
+    //    +-----+---+------+------+-----------+
     //    | name|age|gender|salary|departement|
     //    +-----+---+------+------+-----------+
     //    | jane| 28|female|  2000|     [2,it]|
-    //    |  bob| 31|  male|  2000|     [1,rh]|
+    //    |  bob| 31|  male|  2000|       null| 
     //    |  bob| 35|  male|  2200|     [1,rh]|
     //    | null| 45|  male|  3000|     [1,rh]|
     //    |  joe| 40|  male|  3000|     [1,rh]|
     //    |linda| 37|female|  3000|     [1,rh]|
     //    +-----+---+------+------+-----------+
 
-    people.toDF.as[ComplexPerson].collect().foreach(println)
-
-  //    ComplexPerson(Some(jane),28,female,2000,Department(2,it))
-  //    ComplexPerson(Some(bob),31,male,2000,Department(1,rh))
-  //    ComplexPerson(Some(bob),35,male,2200,Department(1,rh))
-  //    ComplexPerson(None,45,male,3000,Department(1,rh))
-  //    ComplexPerson(Some(joe),40,male,3000,Department(1,rh))
-  //    ComplexPerson(Some(linda),37,female,3000,Department(1,rh))
+    peopleDF.as[ComplexPerson].collect should contain theSameElementsAs peopleSeq //true
 
   }
 
@@ -323,7 +321,7 @@ class SparkSpec extends FlatSpec with Matchers {
       (Department(2, "it"), Some(Person("joe", 40, "male", 3000, 2))),
       (Department(2, "it"), Some(Person("jane", 28, "female", 2000, 2))),
       (Department(3, "marketing"), None)
-    )
+    ) // true
 
   }
 
