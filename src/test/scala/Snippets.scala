@@ -1,12 +1,7 @@
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.scalatest._
-
-case class Person(name: String, age: Int, gender: String, salary: Int, deptId: Int)
-
-case class Department(id: Int, name: String)
-
-case class ComplexPerson(name: Option[String], age: Int, gender: String, salary: Int, departement: Department)
 
 class SparkSpec extends FlatSpec with Matchers {
 
@@ -19,8 +14,10 @@ class SparkSpec extends FlatSpec with Matchers {
     .builder()
     .config(conf)
     .getOrCreate()
-
+  import org.apache.spark.sql._
+  import org.apache.spark.sql.functions._
   import sparkSession.implicits._
+
 
   "word count" should "work" in {
     /*
@@ -84,8 +81,6 @@ class SparkSpec extends FlatSpec with Matchers {
 
 
   "dataframe count" should "work" in {
-    import org.apache.spark.sql.functions._
-
     val df =
       """
       Hello hello world
@@ -93,7 +88,7 @@ class SparkSpec extends FlatSpec with Matchers {
       """.split("\n").toSeq.toDF
 
     //val df = sparkSession.read.text("hdfs://...")
-    val wordsDF = df.select(split(df("value")," ").alias("words"))
+    val wordsDF = df.select(split(df("value"), " ").alias("words"))
     val wordDF = wordsDF.select(explode(wordsDF("words")).alias("word"))
     val count = wordDF.groupBy(lower($"word")).count
 
@@ -102,6 +97,7 @@ class SparkSpec extends FlatSpec with Matchers {
   }
 
   "select where" should "work" in {
+
 
     val ds =
       """
@@ -131,7 +127,6 @@ class SparkSpec extends FlatSpec with Matchers {
   }
 
   "user defined function" should "work in dataset with a simple map (no dataframe UDF)" in {
-
     val upper: String => String = _.toUpperCase
 
     val ds =
@@ -158,8 +153,9 @@ class SparkSpec extends FlatSpec with Matchers {
     //|  ARE|       1|
     //+-----+--------+
   }
-  
-   "datasets and dataframes" should "work with Options" in {
+
+  "datasets and dataframes" should "work with Options" in {
+    case class Person(name: Option[String], age: Int, gender: String, salary: Int, deptId: Int)
 
     val people = Seq(
       Person(Some("jane"), 28, "female", 2000, 2),
@@ -172,7 +168,7 @@ class SparkSpec extends FlatSpec with Matchers {
 
 
     people.printSchema()
-    
+
     //    root
     //    |-- name: string (nullable = true)
     //    |-- age: integer (nullable = false)
@@ -180,7 +176,7 @@ class SparkSpec extends FlatSpec with Matchers {
     //    |-- salary: integer (nullable = false)
     //    |-- deptId: integer (nullable = false)
 
-    people.toDF.show
+    people.show
 
     //    +-----+---+------+------+------+
     //    | name|age|gender|salary|deptId|
@@ -202,8 +198,11 @@ class SparkSpec extends FlatSpec with Matchers {
     //    Person(Some(joe),40,male,3000,2)
     //    Person(Some(linda),37,female,3000,1)
   }
-  
+
   "datasets and dataframes" should "work with Complex types" in {
+    case class Department(id: Int, name: String)
+
+    case class ComplexPerson(name: Option[String], age: Int, gender: String, salary: Int, departement: Option[Department])
 
     val peopleSeq = Seq(
       ComplexPerson(Some("jane"), 28, "female", 2000, Some(Department(2, "it"))),
@@ -231,7 +230,7 @@ class SparkSpec extends FlatSpec with Matchers {
 
 
     peopleDF.show
-    
+
     //    +-----+---+------+------+-----------+
     //    | name|age|gender|salary|departement|
     //    +-----+---+------+------+-----------+
@@ -248,6 +247,9 @@ class SparkSpec extends FlatSpec with Matchers {
   }
 
   "join" should "work" in {
+    case class Person(name: String, age: Int, gender: String, salary: Int, deptId: Int)
+
+    case class Department(id: Int, name: String)
 
     val departments = Seq(
       Department(1, "rh"),
@@ -326,6 +328,9 @@ class SparkSpec extends FlatSpec with Matchers {
   }
 
   "join" should "work with Frameless TypedDataset" in {
+    case class Person(name: String, age: Int, gender: String, salary: Int, deptId: Int)
+
+    case class Department(id: Int, name: String)
 
     import frameless.TypedDataset
 
@@ -352,16 +357,16 @@ class SparkSpec extends FlatSpec with Matchers {
 
     joined.dataset.show
 
-//    +--------------------+------+
-//    |                  _1|    _2|
-//    +--------------------+------+
-//    |[jane,28,female,2...|[2,it]|
-//    |[bob,31,male,2000,1]|[1,rh]|
-//    |[bob,35,male,2200,1]|[1,rh]|
-//    |[john,45,male,300...|[1,rh]|
-//    |[joe,40,male,3000,2]|[2,it]|
-//    |[linda,37,female,...|[1,rh]|
-//    +--------------------+------+
+    //    +--------------------+------+
+    //    |                  _1|    _2|
+    //    +--------------------+------+
+    //    |[jane,28,female,2...|[2,it]|
+    //    |[bob,31,male,2000,1]|[1,rh]|
+    //    |[bob,35,male,2200,1]|[1,rh]|
+    //    |[john,45,male,300...|[1,rh]|
+    //    |[joe,40,male,3000,2]|[2,it]|
+    //    |[linda,37,female,...|[1,rh]|
+    //    +--------------------+------+
 
 
     val leftJoined: TypedDataset[(Department, Option[Person])] = departments.joinLeft(people, departments('id), people('deptId))
@@ -369,6 +374,9 @@ class SparkSpec extends FlatSpec with Matchers {
   }
 
   "aggregate" should "work" in {
+    case class Person(name: String, age: Int, gender: String, salary: Int, deptId: Int)
+
+    case class Department(id: Int, name: String)
 
     val departments = Seq(
       Department(1, "rh"),
@@ -425,12 +433,12 @@ class SparkSpec extends FlatSpec with Matchers {
       .agg(count(people("name")), sum(people("salary"))) // or count(people("*"). N.B. : multiple values allowed on count (to count tuples values)
       .show
 
-//    +----+-----------+-----------+
-//    |name|count(name)|sum(salary)|
-//    +----+-----------+-----------+
-//    |  it|          2|       5000|
-//    |  rh|          4|      10200|
-//    +----+-----------+-----------+
+    //    +----+-----------+-----------+
+    //    |name|count(name)|sum(salary)|
+    //    +----+-----------+-----------+
+    //    |  it|          2|       5000|
+    //    |  rh|          4|      10200|
+    //    +----+-----------+-----------+
 
     departments
       .join(people, departments("id") === people("deptId"))
@@ -438,12 +446,12 @@ class SparkSpec extends FlatSpec with Matchers {
       .agg(countDistinct(people("name")))
       .show
 
-//    +----+--------------------+
-//    |name|count(DISTINCT name)|
-//    +----+--------------------+
-//    |  it|                   2|
-//    |  rh|                   3|
-//    +----+--------------------+
+    //    +----+--------------------+
+    //    |name|count(DISTINCT name)|
+    //    +----+--------------------+
+    //    |  it|                   2|
+    //    |  rh|                   3|
+    //    +----+--------------------+
 
     departments
       .join(people, departments("id") === people("deptId"), "left_outer")
@@ -451,18 +459,21 @@ class SparkSpec extends FlatSpec with Matchers {
       .agg(countDistinct(people("name")))
       .show
 
-//    +---------+--------------------+
-//    |     name|count(DISTINCT name)|
-//    +---------+--------------------+
-//    |marketing|                   0| <-- here we can coun't values that don't match thanks to left_outer
-//    |       it|                   2|
-//    |       rh|                   3|
-//    +---------+--------------------+
+    //    +---------+--------------------+
+    //    |     name|count(DISTINCT name)|
+    //    +---------+--------------------+
+    //    |marketing|                   0| <-- here we can coun't values that don't match thanks to left_outer
+    //    |       it|                   2|
+    //    |       rh|                   3|
+    //    +---------+--------------------+
 
   }
 
   // JUST to compare with datasets
   "join/count" should "work with rdd" in {
+    case class Person(name: String, age: Int, gender: String, salary: Int, deptId: Int)
+
+    case class Department(id: Int, name: String)
 
     val departments = sparkSession.sparkContext.parallelize(Seq(
       Department(1, "rh"),
@@ -479,38 +490,38 @@ class SparkSpec extends FlatSpec with Matchers {
       Person("linda", 37, "female", 3000, 1)
     ))
 
-    val departmentsById = departments.map{ department =>
+    val departmentsById = departments.map { department =>
       (department.id, department)
     }
 
-    val peopleByDepartmentId = people.map{ person =>
+    val peopleByDepartmentId = people.map { person =>
       (person.deptId, person)
     }
 
     peopleByDepartmentId.join(departmentsById).toDF.show
-//+---+--------------------+
-//    | _1|                  _2|
-//    +---+--------------------+
-//    |  1|[[bob,31,male,200...|
-//    |  1|[[bob,35,male,220...|
-//    |  1|[[john,45,male,30...|
-//    |  1|[[linda,37,female...|
-//    |  2|[[jane,28,female,...|
-//    |  2|[[joe,40,male,300...|
-//    +---+--------------------+
+    //+---+--------------------+
+    //    | _1|                  _2|
+    //    +---+--------------------+
+    //    |  1|[[bob,31,male,200...|
+    //    |  1|[[bob,35,male,220...|
+    //    |  1|[[john,45,male,30...|
+    //    |  1|[[linda,37,female...|
+    //    |  2|[[jane,28,female,...|
+    //    |  2|[[joe,40,male,300...|
+    //    +---+--------------------+
 
     peopleByDepartmentId.join(departmentsById)
-      .map {case (deptId, (person, department)) =>
+      .map { case (deptId, (person, department)) =>
         (department.name, 1)
       }.reduceByKey((accu, current) => accu + current)
       .toDF("department", "count").show
 
-//    +----------+-----+
-//    |department|count|
-//    +----------+-----+
-//    |        it|    2|
-//    |        rh|    4|
-//    +----------+-----+
+    //    +----------+-----+
+    //    |department|count|
+    //    +----------+-----+
+    //    |        it|    2|
+    //    |        rh|    4|
+    //    +----------+-----+
 
 
   }
